@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        .form-container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, 
+        .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-group button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+        .services-container {
+            margin-bottom: 15px;
+        }
+        .services-container .service-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .services-container .service-group input {
+            flex: 1;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+        function addService() {
+            const servicesContainer = document.getElementById('services-container');
+            const serviceGroup = document.createElement('div');
+            serviceGroup.className = 'service-group';
+
+            const serviceInput = document.createElement('input');
+            serviceInput.type = 'text';
+            serviceInput.name = 'service[]';
+            serviceInput.placeholder = 'Service';
+            serviceInput.required = true;
+
+            const rateInput = document.createElement('input');
+            rateInput.type = 'number';
+            rateInput.name = 'rate[]';
+            rateInput.placeholder = 'Rate';
+            rateInput.required = true;
+            rateInput.oninput = calculateSubtotal;
+
+            const quantityInput = document.createElement('input');
+            quantityInput.type = 'number';
+            quantityInput.name = 'quantity[]';
+            quantityInput.placeholder = 'Quantity';
+            quantityInput.required = true;
+            quantityInput.oninput = calculateSubtotal;
+
+            serviceGroup.appendChild(serviceInput);
+            serviceGroup.appendChild(rateInput);
+            serviceGroup.appendChild(quantityInput);
+            servicesContainer.appendChild(serviceGroup);
+        }
+
+        function calculateSubtotal() {
+            let subtotal = 0;
+            const rateInputs = document.getElementsByName('rate[]');
+            const quantityInputs = document.getElementsByName('quantity[]');
+
+            for (let i = 0; i < rateInputs.length; i++) {
+                const rate = parseFloat(rateInputs[i].value) || 0;
+                const quantity = parseFloat(quantityInputs[i].value) || 0;
+                subtotal += rate * quantity;
+            }
+
+            const serviceFee = subtotal * 0.20;
+            const total = subtotal + serviceFee;
+
+            document.getElementById('subtotal').value = subtotal.toFixed(2);
+            document.getElementById('serviceFee').value = serviceFee.toFixed(2);
+            document.getElementById('total').value = total.toFixed(2);
+        }
+        function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    const phone = document.getElementById('phone').value;
+    const address = document.getElementById('address').value;
+    const services = document.getElementsByName('service[]');
+    const rates = document.getElementsByName('rate[]');
+    const quantities = document.getElementsByName('quantity[]');
+    const subtotal = document.getElementById('subtotal').value;
+    const serviceFee = document.getElementById('serviceFee').value;
+    const total = document.getElementById('total').value;
+
+    doc.setFontSize(16);
+    doc.text('INVOICE', 10, 10);
+
+    doc.setFontSize(12);
+    doc.text('INDIA RASI LTD', 10, 20);
+
+    doc.text(`Bill to:`, 10, 30);
+    doc.text(`${name}`, 30, 30);
+    doc.text(`Invoice No: #0378`, 130, 30);
+
+    doc.text(`${address}`, 30, 40);
+    doc.text(`Date: 2024-02-15`, 130, 40);
+
+    doc.text(`${email}`, 30, 50);
+    doc.text(`Time: 14:22:17`, 130, 50);
+
+    doc.text(`${phone}`, 30, 60);
+    doc.text(`Due-on: 2024-02-04`, 130, 60);
+
+    doc.line(10, 70, 200, 70); 
+    let yPosition = 80;
+    doc.text('Description', 10, yPosition);
+    doc.text('Quantity', 80, yPosition);
+    doc.text('Rate', 110, yPosition);
+    doc.text('VAT', 140, yPosition);
+    doc.text('Amount', 170, yPosition);
+
+    yPosition += 10;
+
+    for (let i = 0; i < services.length; i++) {
+        const service = services[i].value;
+        const rate = rates[i].value;
+        const quantity = quantities[i].value;
+        const amount = (rate * quantity).toFixed(2);
+        const vat = (amount * 0.20).toFixed(2);
+        const totalAmount = (parseFloat(amount) + parseFloat(vat)).toFixed(2);
+
+        doc.text(service, 10, yPosition);
+        doc.text(quantity, 80, yPosition);
+        doc.text(rate, 110, yPosition);
+        doc.text('20%', 140, yPosition);
+        doc.text(totalAmount, 170, yPosition);
+
+        yPosition += 10;
+    }
+
+    doc.line(10, yPosition, 200, yPosition); 
+    yPosition += 10;
+
+    doc.text(`Subtotal`, 130, yPosition);
+    doc.text(`$${subtotal}`, 170, yPosition);
+
+    yPosition += 10;
+    doc.text(`VAT 20%`, 130, yPosition);
+    doc.text(`$${serviceFee}`, 170, yPosition);
+
+    yPosition += 10;
+    doc.text(`Total`, 130, yPosition);
+    doc.text(`$${total}`, 170, yPosition);
+
+    doc.line(10, yPosition + 10, 200, yPosition + 10); 
+    yPosition += 20;
+
+    doc.text('Payment Instruction:', 10, yPosition);
+    doc.text('Account Number: 84234989', 50, yPosition);
+    doc.text('Sort Code: 51-81-08', 130, yPosition);
+
+    yPosition += 10;
+    doc.text('Paid', 10, yPosition);
+    doc.text('0.00', 50, yPosition);
+
+    yPosition += 10;
+    doc.text('Balance Due', 10, yPosition);
+    doc.text(total, 50, yPosition);
+
+    yPosition += 10;
+    doc.text('85 Great Portland Street First Floor London W1W 7LT', 10, yPosition);
+    yPosition += 10;
+    doc.text('account@partnerandexpress.com', 10, yPosition);
+
+    doc.save('billing.pdf');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    addService();  
+});
+
+       
+    </script>
+</head>
+<body>
+
+<div class="form-container">
+    <form id="billing-form">
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <label for="phone">Phone:</label>
+            <input type="tel" id="phone" name="phone" required>
+        </div>
+        <div class="form-group">
+            <label for="address">Address:</label>
+            <textarea id="address" name="address" rows="2" required></textarea>
+        </div>
+        <div id="services-container" class="services-container"></div>
+        <div class="form-group">
+            <button type="button" onclick="addService()">Add Service</button>
+        </div>
+        <div class="form-group">
+            <label for="subtotal">Subtotal:</label>
+            <input type="text" id="subtotal" name="subtotal" readonly>
+        </div>
+        <div class="form-group">
+            <label for="serviceFee">Service Fee (20%):</label>
+            <input type="text" id="serviceFee" name="serviceFee" readonly>
+        </div>
+        <div class="form-group">
+            <label for="total">Total:</label>
+            <input type="text" id="total" name="total" readonly>
+        </div>
+        <div class="form-group">
+            <label for="upload-script"></label>
+            <input type="file" id="upload-script" name="script" aria-label="upload" required>
+        </div>
+        <div class="form-group">
+           
+            <button type="button" onclick="generatePDF() ">Generate PDF</button>
+        </div>
+        <div class="form-group">
+            <button type="submit">Submit</button>
+        </div>
+    </form>
+</div>
+
+</body>
+</html>
